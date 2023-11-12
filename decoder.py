@@ -1,16 +1,17 @@
 import tensorflow as tf
 from multi_head_attention import MultiHeadAttention
+from feed_forward import FeedForward
+import hyperparameters as hp
 
 
 class Decoder(tf.keras.layers.Layer):
 
-    def __init__(self, nb_decoder, **kwargs):
-        self.nb_decoder = nb_decoder
-        super().__init__(**kwargs)
+    def __init__(self):
+        super().__init__()
 
     def build(self, input_shape):
         self.decoder_layers = []
-        for _ in range(self.nb_decoder):
+        for _ in range(hp.num_decoders):
             self.decoder_layers.append(DecoderLayer())
         super().build(input_shape)
 
@@ -22,14 +23,14 @@ class Decoder(tf.keras.layers.Layer):
 
 class DecoderLayer(tf.keras.layers.Layer):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self):
+        super().__init__()
 
     def build(self, input_shape):
         self.self_attention = MultiHeadAttention(masked=True)
         self.attention = MultiHeadAttention()
         self.norm = tf.keras.layers.LayerNormalization()
-        self.dense = tf.keras.layers.Dense(512)
+        self.ff = FeedForward()
         super().build(input_shape)
 
     def call(self, x):
@@ -41,5 +42,5 @@ class DecoderLayer(tf.keras.layers.Layer):
         attention = self.attention((self_attention_add_norm, encoder_output, encoder_output)) # Q K V
         attention_add_norm = self.norm(attention + self_attention_add_norm)
 
-        dense = self.dense(attention_add_norm)
-        return self.norm(dense + attention_add_norm)
+        ff = self.ff(attention_add_norm)
+        return self.norm(ff + attention_add_norm)
